@@ -12,14 +12,18 @@ const upload = multer({ dest: "uploads/" });
 
 let pdfText = "";
 
-// OpenAI setup
+// ✅ OpenAI setup
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Upload PDF
+// ✅ PDF Upload Route
 app.post("/upload", upload.single("pdf"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.json({ message: "No file uploaded" });
+    }
+
     const dataBuffer = fs.readFileSync(req.file.path);
     const data = await pdfParse(dataBuffer);
     pdfText = data.text;
@@ -28,39 +32,56 @@ app.post("/upload", upload.single("pdf"), async (req, res) => {
 
     res.json({ message: "PDF uploaded successfully" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.json({ message: "Error reading PDF" });
   }
 });
 
-// Chat
+// ✅ Chat Route
 app.post("/chat", async (req, res) => {
-  const userMessage = req.body.message;
-
-  let prompt = "";
-
-  if (!pdfText || pdfText.length < 50) {
-    prompt = `Answer this normally: ${userMessage}`;
-  } else {
-    prompt = `
-    PDF:
-    ${pdfText}
-
-    Question: ${userMessage}
-    `;
-  }
-
   try {
+    const userMessage = req.body.message;
+
+    if (!userMessage) {
+      return res.json({ reply: "Please enter a message" });
+    }
+
+    let prompt = "";
+
+    if (!pdfText || pdfText.length < 50) {
+      prompt = `Answer this clearly:\n${userMessage}`;
+    } else {
+      prompt = `
+You are a helpful study assistant.
+
+PDF Content:
+${pdfText}
+
+Question: ${userMessage}
+`;
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }]
+      messages: [
+        { role: "system", content: "You are a helpful study assistant." },
+        { role: "user", content: prompt }
+      ]
     });
 
-    res.json({ reply: response.choices[0].message.content });
+    res.json({
+      reply: response.choices[0].message.content
+    });
+
   } catch (err) {
-    console.log(err);
-    res.json({ reply: "Error with OpenAI API" });
+    console.error("OpenAI Error:", err.message);
+    res.json({ reply: "Error: AI not responding" });
   }
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+// ✅ IMPORTANT FIX FOR RENDER (PORT)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
