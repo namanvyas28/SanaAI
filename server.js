@@ -61,17 +61,12 @@ Question: ${userMessage}
 `;
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are a helpful study assistant." },
-        { role: "user", content: prompt }
-      ]
-    });
+    const response = await openai.responses.create({
+  model: "gpt-4o-mini",
+  input: prompt
+});
 
-    res.json({
-      reply: response.choices[0].message.content
-    });
+res.json({ reply: response.output[0].content[0].text });
 
   } catch (err) {
     console.error("OpenAI Error:", err.message);
@@ -79,7 +74,6 @@ Question: ${userMessage}
   }
 });
 
-// ✅ IMPORTANT FIX FOR RENDER (PORT)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
