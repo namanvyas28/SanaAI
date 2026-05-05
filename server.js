@@ -12,12 +12,12 @@ const upload = multer({ dest: "uploads/" });
 
 let pdfText = "";
 
-// ✅ OpenAI setup
+// OpenAI setup
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// ✅ PDF Upload Route
+// PDF Upload
 app.post("/upload", upload.single("pdf"), async (req, res) => {
   try {
     if (!req.file) {
@@ -37,7 +37,7 @@ app.post("/upload", upload.single("pdf"), async (req, res) => {
   }
 });
 
-// ✅ Chat Route
+// Chat Route
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body.message;
@@ -62,18 +62,21 @@ Question: ${userMessage}
     }
 
     const response = await openai.responses.create({
-  model: "gpt-4o-mini",
-  input: prompt
-});
+      model: "gpt-4o-mini",
+      input: prompt
+    });
 
-res.json({ reply: response.output[0].content[0].text });
+    const reply = response.output[0].content[0].text;
+
+    res.json({ reply });
 
   } catch (err) {
-    console.error("OpenAI Error:", err.message);
-    res.json({ reply: "Error: AI not responding" });
+    console.log("FULL ERROR:", err);
+    res.json({ reply: "Error: " + err.message });
   }
 });
 
+// PORT FIX (IMPORTANT for Render)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
